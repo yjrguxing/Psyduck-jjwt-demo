@@ -1,5 +1,5 @@
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.apache.commons.codec.binary.Base64;
 
@@ -16,41 +16,63 @@ public class Jjwt {
             NoSuchAlgorithmException ,
             InvalidKeyException {
         //使用jjwt生成jwt
-        //签名使用加密算法设置
-        SecretKey secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-        //sub 可达鸭
-        String compact = Jwts.builder().setSubject("可达鸭").signWith(secretKey).compact();
-        System.out.println(compact);
+        //快速开始
+//        //签名使用加密算法设置
+//        SecretKey secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+//        //sub 可达鸭
+//        String compact = Jwts.builder().setSubject("可达鸭").signWith(secretKey).compact();
+//        System.out.println(compact);
+//
+//        //jwt解码器建造工厂 设置jwt解码器签名加密方式 建造 用此解码器验证jwt（exception则表示jwt不合法或者签名加密方式不对）
+//        //获取jwt payload部分 获取subject
+//        String subject = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(compact).getBody().getSubject();
+//        System.out.println(subject);
 
-        //jwt解码器建造工厂 设置jwt解码器签名加密方式 建造 用此解码器验证jwt（exception则表示jwt不合法或者签名加密方式不对）
-        //获取jwt payload部分 获取subject
-        String subject = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(compact).getBody().getSubject();
-        System.out.println(subject);
+        //完整步骤
+        //创建JWT
+        //创建Hmac-SHA算法需要的key(256位 32字节)
+//        Keys.hmacShaKeyFor("123456".getBytes("UTF-8"));//直接手动创建key取其bytes 或 填入一个被加密过的byte数组
+//        Keys.hmacShaKeyFor(Decoders.BASE64.decode("123456"));//手动创建key对其进行BASE64加密
+        SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode("123456781234567812345678123456781234567812345678"));//手动创建key对其进行BASE64URL加密
+        String jwt = Jwts.builder() //构建Jwt建造者
+                .setHeaderParam("typ", "JWT") //设置标头参数
+                .claim("hello", "world") //设置索偿（payload jwt主体内容）
+                .claim("name", "可达鸭")
+                .signWith(secretKey, SignatureAlgorithm.HS256) //设置加密使用的密钥及加密算法（加密算法可不指定）
+                .compact();
+        System.out.println(jwt);
+        //读取JWT
+        Jws<Claims> jws = Jwts.parserBuilder() //构建JWT解析器建造者
+                .setSigningKey(secretKey) //指定要解析的JWT所使用的secretKey用以判断签名是否正确 不正确代表JWT已不可信
+                .build() //调用build来返回线程安全的JWT解析器
+                //填入需要解析的JWT
+                .parseClaimsJws("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJoZWxsbyI6IndvcmxkIiwibmFtZSI6IuWPr-i-vum4rSJ9.T3GFPGTEBOe9dTZBZ8HKWSOa3Z9dmvVY_VhKaU_Gr48");
+        System.out.println(jws);
 
 
         //手动生成jwt
-        //创建jwt标头和payload
-        String header = "{\"alg\":\"HS256\"}";
-        String claims = "{\"sub\":\"可达鸭\"}";
-        //使用基于Commons Codec的URLBase64加密header及payload
-        byte[] encodeHeaderBytes = Base64.encodeBase64URLSafe(header.getBytes());
-        byte[] encodeClaimsBytes = Base64.encodeBase64URLSafe(claims.getBytes());
-        //将字节码转为String
-        String encodeHeader = new String(encodeHeaderBytes);
-        String encodeClaims = new String(encodeClaimsBytes);
-        System.out.println("标头："+encodeHeader);
-        System.out.println("载荷："+encodeClaims);
-        //生成HmacSHA256加密的secret及message
-        String secret = "123456";
-        String message = encodeHeader + "." + encodeClaims;
-        //构建以secret作为加密盐的HmacSHA256加密器
-        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes("UTF-8"), "HmacSHA256");
-        sha256_HMAC.init(secret_key);
-        //生成签名 并用BaseURL编码
-        String verifySignature = new String(Base64.encodeBase64URLSafe(sha256_HMAC.doFinal(message.getBytes())));
-        System.out.println("手动生成jwt:\n" + message + "." + verifySignature);
-
+//        //创建jwt标头和payload
+//        String header = "{\"alg\":\"HS256\"}";
+//        String claims = "{\"sub\":\"可达鸭\"}";
+//        //使用基于Commons Codec的URLBase64加密header及payload
+//        byte[] encodeHeaderBytes = Base64.encodeBase64URLSafe(header.getBytes());
+//        byte[] encodeClaimsBytes = Base64.encodeBase64URLSafe(claims.getBytes());
+//        //将字节码转为String
+//        String encodeHeader = new String(encodeHeaderBytes);
+//        String encodeClaims = new String(encodeClaimsBytes);
+//        System.out.println("标头："+encodeHeader);
+//        System.out.println("载荷："+encodeClaims);
+//        //生成HmacSHA256加密的secret及message
+//        String secret = "123456";
+//        String message = encodeHeader + "." + encodeClaims;
+//        //构建以secret作为加密盐的HmacSHA256加密器
+//        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+//        SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes("UTF-8"), "HmacSHA256");
+//        sha256_HMAC.init(secret_key);
+//        //生成签名 并用BaseURL编码
+//        String verifySignature = new String(Base64.encodeBase64URLSafe(sha256_HMAC.doFinal(message.getBytes())));
+//        System.out.println("手动生成jwt:\n" + message + "." + verifySignature);
+        //手动生成Jwt结束
 //        //构建base64加密器 有误弃用 标头和payload使用的加密方式是base64Url 不是 base64
 //        BASE64Encoder base64Encoder = new BASE64Encoder();
 //        //base64加密头部
