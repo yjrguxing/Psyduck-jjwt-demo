@@ -1,0 +1,7 @@
+# Default ignored files
+target
+.env
+.idea
+*.iml
+*.yml
+!application.yml
